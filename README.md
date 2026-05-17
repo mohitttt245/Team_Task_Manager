@@ -276,3 +276,8 @@ python manage.py createsuperuser
 ## License
 
 Use this project for learning, demos, or internal tooling customization.
+
+
+## Deployment Link
+
+https://web-production-3f4a6.up.railway.app/
