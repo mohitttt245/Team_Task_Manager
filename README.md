@@ -265,13 +265,6 @@ python manage.py createsuperuser
 - Session authentication for server-rendered pages
 - Unauthorized access redirected or blocked with proper API permissions
 
-## Screenshots
-
-Add screenshots here after running the project locally or on Railway:
-
-- `docs/screenshots/login.png`
-- `docs/screenshots/admin-dashboard.png`
-- `docs/screenshots/tasks.png`
 
 ## Future Improvements
 
