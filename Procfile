@@ -1,1 +1,1 @@
-web: gunicorn Team Task Manager.wsgi --log-file -
+web: gunicorn core.wsgi --log-file -
