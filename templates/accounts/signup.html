@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Signup | {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="auth-grid auth-grid--wide">
+    <section class="auth-panel auth-panel--hero">
+        <span class="pill-label">Launch your workspace</span>
+        <h1>Create an account and start managing collaborative delivery.</h1>
+        <p>For demos, this app supports both admin and member signups. In production, admin signup can be disabled through environment settings.</p>
+        <div class="feature-stack">
+            <div class="feature-stack__item">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>JWT, hashed passwords, and CSRF protection</span>
+            </div>
+            <div class="feature-stack__item">
+                <i class="bi bi-layout-text-window-reverse"></i>
+                <span>Responsive dashboards, search, filters, and modal workflows</span>
+            </div>
+            <div class="feature-stack__item">
+                <i class="bi bi-cloud-check-fill"></i>
+                <span>Railway-ready configuration with PostgreSQL and WhiteNoise</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="auth-panel auth-panel--form">
+        <div class="auth-form-wrap">
+            <h2>Create your account</h2>
+            <p class="text-muted mb-4">Set up your profile and choose the role you want to test.</p>
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    {% for field in form %}
+                        <div class="{% if field.name == 'bio' %}col-12{% else %}col-md-6{% endif %}">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text|safe }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">{{ field.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-dark w-100 mt-4">Create Account</button>
+            </form>
+            <p class="auth-link mt-4 mb-0">
+                Already registered?
+                <a href="{% url 'accounts:login' %}">Login here</a>
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}

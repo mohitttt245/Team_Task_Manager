@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects | {{ APP_NAME }}{% endblock %}
+{% block page_title %}Project Management{% endblock %}
+{% block eyebrow %}Admin Controls{% endblock %}
+{% block page_actions %}
+    <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+        <i class="bi bi-plus-lg me-2"></i>New Project
+    </button>
+{% endblock %}
+
+{% block content %}
+<div class="panel-card">
+    <div class="toolbar mb-4">
+        <form class="row g-3 align-items-end flex-grow-1" method="get">
+            <div class="col-md-8">
+                <label class="form-label" for="projectSearch">Search projects</label>
+                <input id="projectSearch" type="search" class="form-control" name="search" value="{{ search }}" placeholder="Search by name, description, or member">
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1">Search</button>
+                <a href="{% url 'projects:list' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle project-table">
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Created By</th>
+                    <th>Team</th>
+                    <th>Progress</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                    <tr>
+                        <td>
+                            <strong>{{ project.name }}</strong>
+                            <small class="d-block text-muted">{{ project.description|default:"No description provided."|truncatechars:90 }}</small>
+                        </td>
+                        <td>{{ project.created_by.display_name }}</td>
+                        <td>
+                            <div class="member-badges">
+                                {% for member in project.team_members.all %}
+                                    <span class="member-badge">{{ member.display_name }}</span>
+                                {% empty %}
+                                    <span class="text-muted small">No members added</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td style="min-width: 190px;">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ project.progress_percentage }}%</span>
+                                <span>{{ project.tasks.count }} tasks</span>
+                            </div>
+                            <div class="progress progress--thick">
+                                <div class="progress-bar" style="width: {{ project.progress_percentage }}%"></div>
+                            </div>
+                        </td>
+                        <td>{{ project.created_at|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#editProjectModal{{ project.pk }}">Edit</button>
+                                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal{{ project.pk }}">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">No projects found. Create your first project to get started.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'components/pagination.html' with page_obj=page_obj %}
+</div>
+
+{% for project in projects %}
+    <div class="modal fade" id="editProjectModal{{ project.pk }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" action="{% url 'projects:update' project.pk %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Project Name</label>
+                                <input type="text" class="form-control" name="name" value="{{ project.name }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="4">{{ project.description }}</textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Team Members</label>
+                                <select class="form-select" name="team_members" multiple size="8">
+                                    {% for member in member_options %}
+                                        <option value="{{ member.pk }}" {% if member in project.team_members.all %}selected{% endif %}>{{ member.display_name }} ({{ member.email }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-dark">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteProjectModal{{ project.pk }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" action="{% url 'projects:delete' project.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">Delete <strong>{{ project.name }}</strong>? This will also remove its tasks.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+<div class="modal fade" id="createProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'projects:create' %}" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="{{ project_form.name.id_for_label }}">Project Name</label>
+                            {{ project_form.name }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ project_form.description.id_for_label }}">Description</label>
+                            {{ project_form.description }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ project_form.team_members.id_for_label }}">Team Members</label>
+                            {{ project_form.team_members }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

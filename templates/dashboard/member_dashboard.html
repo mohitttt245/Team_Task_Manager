@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Dashboard | {{ APP_NAME }}{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block eyebrow %}Personal Task Workspace{% endblock %}
+{% block page_actions %}
+    <a href="{% url 'tasks:list' %}" class="btn btn-dark">
+        <i class="bi bi-list-task me-2"></i>View My Tasks
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid mb-4">
+    <article class="stat-card stat-card--blue">
+        <span>My Tasks</span>
+        <strong>{{ my_tasks }}</strong>
+        <small>All tasks currently assigned to you</small>
+    </article>
+    <article class="stat-card stat-card--green">
+        <span>Completed</span>
+        <strong>{{ completed_tasks }}</strong>
+        <small>Finished and moved to done</small>
+    </article>
+    <article class="stat-card stat-card--amber">
+        <span>Pending</span>
+        <strong>{{ pending_tasks }}</strong>
+        <small>Still in todo or progress</small>
+    </article>
+    <article class="stat-card stat-card--rose">
+        <span>Overdue</span>
+        <strong>{{ overdue_tasks }}</strong>
+        <small>Tasks that have passed their due date</small>
+    </article>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="panel-card chart-card">
+                    <div class="panel-card__header">
+                        <div>
+                            <h3 class="panel-card__title">My Task Status</h3>
+                            <p class="text-muted mb-0">How your assigned workload is distributed.</p>
+                        </div>
+                    </div>
+                    {{ status_breakdown|json_script:"member-status-breakdown-data" }}
+                    <canvas id="memberStatusChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="panel-card">
+                    <div class="panel-card__header">
+                        <div>
+                            <h3 class="panel-card__title">Today’s Focus</h3>
+                            <p class="text-muted mb-0">Your highest-priority open work, ordered by due date.</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Project</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in today_focus %}
+                                    <tr class="{% if task.is_overdue %}table-danger{% endif %}">
+                                        <td>{{ task.title }}</td>
+                                        <td>{{ task.project.name }}</td>
+                                        <td><span class="status-pill status-pill--{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+                                        <td>{{ task.due_date|date:"M d, Y" }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-muted">No active tasks assigned right now.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="panel-card mb-4">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Upcoming Deadlines</h3>
+                    <p class="text-muted mb-0">What’s coming up next on your schedule.</p>
+                </div>
+            </div>
+            <div class="deadline-list">
+                {% for task in upcoming_deadlines %}
+                    <article class="deadline-list__item">
+                        <div>
+                            <strong>{{ task.title }}</strong>
+                            <small class="d-block text-muted">{{ task.project.name }}</small>
+                        </div>
+                        <span>{{ task.due_date|date:"M d" }}</span>
+                    </article>
+                {% empty %}
+                    <p class="text-muted mb-0">No upcoming deadlines found.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Recent Activity</h3>
+                    <p class="text-muted mb-0">Recent changes tied to your work.</p>
+                </div>
+            </div>
+            <div class="timeline-list">
+                {% for activity in recent_activities %}
+                    <article class="timeline-list__item">
+                        <span class="timeline-list__dot"></span>
+                        <div>
+                            <p class="mb-1">{{ activity.message }}</p>
+                            <small class="text-muted">{{ activity.created_at|timesince }} ago</small>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="text-muted mb-0">No recent activity yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

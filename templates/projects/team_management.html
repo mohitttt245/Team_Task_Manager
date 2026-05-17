@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Team Management | {{ APP_NAME }}{% endblock %}
+{% block page_title %}Team Management{% endblock %}
+{% block eyebrow %}Admin Controls{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="panel-card">
+            <div class="toolbar mb-4">
+                <form class="row g-3 align-items-end flex-grow-1" method="get">
+                    <div class="col-md-8">
+                        <label class="form-label" for="teamSearch">Search by project or member</label>
+                        <input id="teamSearch" type="search" class="form-control" name="search" value="{{ search }}" placeholder="Search projects or team members">
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-dark flex-grow-1">Search</button>
+                        <a href="{% url 'projects:team' %}" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="accordion" id="teamAccordion">
+                {% for entry in project_forms %}
+                    <div class="accordion-item team-accordion-item">
+                        <h2 class="accordion-header" id="heading{{ entry.project.pk }}">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ entry.project.pk }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ entry.project.pk }}">
+                                <span class="me-3 fw-semibold">{{ entry.project.name }}</span>
+                                <span class="text-muted small">{{ entry.project.team_members.count }} members</span>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ entry.project.pk }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ entry.project.pk }}" data-bs-parent="#teamAccordion">
+                            <div class="accordion-body">
+                                <div class="mb-3">
+                                    <p class="text-muted mb-0">{{ entry.project.description|default:"No description added yet." }}</p>
+                                </div>
+                                <form method="post" action="{% url 'projects:team-update' entry.project.pk %}" class="needs-validation" novalidate>
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label class="form-label" for="{{ entry.form.team_members.id_for_label }}">Assigned Members</label>
+                                        {{ entry.form.team_members }}
+                                    </div>
+                                    <button type="submit" class="btn btn-dark">Update Team</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">No projects available for team assignment yet.</p>
+                {% endfor %}
+            </div>
+
+            {% include 'components/pagination.html' with page_obj=page_obj %}
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="panel-card">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Team Guidelines</h3>
+                    <p class="text-muted mb-0">Keep project membership clean so task assignment stays accurate.</p>
+                </div>
+            </div>
+            <div class="stacked-tips">
+                <div class="stacked-tips__item">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Only members added to a project can be assigned tasks from that project.</span>
+                </div>
+                <div class="stacked-tips__item">
+                    <i class="bi bi-search-heart-fill"></i>
+                    <span>Use the search bar to quickly locate projects or teammates.</span>
+                </div>
+                <div class="stacked-tips__item">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Update team membership before creating new tasks to avoid assignment errors.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

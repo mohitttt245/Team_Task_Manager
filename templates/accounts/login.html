@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Login | {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="auth-grid">
+    <section class="auth-panel auth-panel--hero">
+        <span class="pill-label">Team productivity, simplified</span>
+        <h1>Coordinate projects, assign work, and keep every deadline visible.</h1>
+        <p>Team Task Manager gives admins a clean operational cockpit and gives members a focused place to move work forward.</p>
+        <div class="auth-hero-cards">
+            <article class="mini-card">
+                <i class="bi bi-check2-square"></i>
+                <div>
+                    <strong>Task flow clarity</strong>
+                    <span>Track todo, in progress, and done in one place.</span>
+                </div>
+            </article>
+            <article class="mini-card">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                <div>
+                    <strong>Operational analytics</strong>
+                    <span>See overdue work, progress signals, and recent activity.</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="auth-panel auth-panel--form">
+        <div class="auth-form-wrap">
+            <h2>Welcome back</h2>
+            <p class="text-muted mb-4">Sign in with your username or email to continue.</p>
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="invalid-feedback d-block">{{ field.errors|join:', ' }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-dark w-100">Login</button>
+            </form>
+            <p class="auth-link mt-4 mb-0">
+                Need an account?
+                <a href="{% url 'accounts:signup' %}">Create one here</a>
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}

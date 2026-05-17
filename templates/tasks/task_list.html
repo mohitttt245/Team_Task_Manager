@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}Tasks | {{ APP_NAME }}{% endblock %}
+{% block page_title %}{% if user.is_admin_role %}Task Management{% else %}My Tasks{% endif %}{% endblock %}
+{% block eyebrow %}{% if user.is_admin_role %}Admin Controls{% else %}Execution Workspace{% endif %}{% endblock %}
+{% block page_actions %}
+    {% if user.is_admin_role %}
+        <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+            <i class="bi bi-plus-lg me-2"></i>New Task
+        </button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="panel-card">
+    <div class="toolbar mb-4">
+        <form class="row g-3 align-items-end flex-grow-1" method="get">
+            <div class="col-lg-6">
+                <label class="form-label" for="taskSearch">Search tasks</label>
+                <input id="taskSearch" type="search" class="form-control" name="search" value="{{ search }}" placeholder="Search task title, project, or description">
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label" for="taskStatusFilter">Filter by status</label>
+                <select id="taskStatusFilter" class="form-select" name="status">
+                    <option value="">All statuses</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1">Apply</button>
+                <a href="{% url 'tasks:list' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Project</th>
+                    <th>Assignee</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Due Date</th>
+                    <th>Updated</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr class="{% if task.is_overdue %}table-danger overdue-row{% endif %}">
+                        <td>
+                            <strong>{{ task.title }}</strong>
+                            <small class="d-block text-muted">{{ task.description|default:"No description provided."|truncatechars:90 }}</small>
+                        </td>
+                        <td>{{ task.project.name }}</td>
+                        <td>{% if task.assigned_to %}{{ task.assigned_to.display_name }}{% else %}<span class="text-muted">Unassigned</span>{% endif %}</td>
+                        <td><span class="status-pill status-pill--{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+                        <td><span class="priority-pill priority-pill--{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+                        <td>{{ task.due_date|date:"M d, Y" }}</td>
+                        <td>{{ task.updated_at|date:"M d, Y H:i" }}</td>
+                        <td class="text-end">
+                            {% if user.is_admin_role %}
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#editTaskModal{{ task.pk }}">Edit</button>
+                                    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTaskModal{{ task.pk }}">Delete</button>
+                                </div>
+                            {% else %}
+                                <form method="post" action="{% url 'tasks:status-update' task.pk %}" class="d-flex gap-2 justify-content-end">
+                                    {% csrf_token %}
+                                    <select name="status" class="form-select form-select-sm" style="max-width: 160px;">
+                                        {% for value, label in status_choices %}
+                                            <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-dark">Save</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">No tasks match your current filters.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'components/pagination.html' with page_obj=page_obj %}
+</div>
+
+{% if user.is_admin_role %}
+    {% for task in tasks %}
+        <div class="modal fade" id="editTaskModal{{ task.pk }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'tasks:update' task.pk %}" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Task</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" class="form-control" name="title" value="{{ task.title }}" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" rows="4">{{ task.description }}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Project</label>
+                                    <select class="form-select" name="project" required>
+                                        {% for project in project_options %}
+                                            <option value="{{ project.pk }}" {% if task.project_id == project.pk %}selected{% endif %}>{{ project.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Assigned User</label>
+                                    <select class="form-select" name="assigned_to" required>
+                                        {% for member in member_options %}
+                                            <option value="{{ member.pk }}" {% if task.assigned_to_id == member.pk %}selected{% endif %}>{{ member.display_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" name="status">
+                                        {% for value, label in status_choices %}
+                                            <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Priority</label>
+                                    <select class="form-select" name="priority">
+                                        {% for value, label in priority_choices %}
+                                            <option value="{{ value }}" {% if task.priority == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Due Date</label>
+                                    <input type="date" class="form-control" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-dark">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="deleteTaskModal{{ task.pk }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'tasks:delete' task.pk %}">
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title">Delete Task</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">Delete <strong>{{ task.title }}</strong> from {{ task.project.name }}?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+
+{% if user.is_admin_role %}
+    <div class="modal fade" id="createTaskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" action="{% url 'tasks:create' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="{{ task_form.title.id_for_label }}">Title</label>
+                                {{ task_form.title }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="{{ task_form.description.id_for_label }}">Description</label>
+                                {{ task_form.description }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ task_form.project.id_for_label }}">Project</label>
+                                {{ task_form.project }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ task_form.assigned_to.id_for_label }}">Assigned User</label>
+                                {{ task_form.assigned_to }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ task_form.status.id_for_label }}">Status</label>
+                                {{ task_form.status }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ task_form.priority.id_for_label }}">Priority</label>
+                                {{ task_form.priority }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ task_form.due_date.id_for_label }}">Due Date</label>
+                                {{ task_form.due_date }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-dark">Create Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

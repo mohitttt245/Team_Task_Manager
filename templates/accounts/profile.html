@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile | {{ APP_NAME }}{% endblock %}
+{% block page_title %}Profile Settings{% endblock %}
+{% block eyebrow %}Account Management{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="panel-card">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Update Profile</h3>
+                    <p class="text-muted mb-0">Keep your account details up to date.</p>
+                </div>
+            </div>
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    {% for field in form %}
+                        <div class="{% if field.name == 'bio' %}col-12{% else %}col-md-6{% endif %}">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">{{ field.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-dark mt-4">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="panel-card profile-summary">
+            <div class="profile-summary__avatar">{{ user.display_name|slice:":1"|upper }}</div>
+            <h3 class="mb-1">{{ user.display_name }}</h3>
+            <p class="text-muted mb-3">{{ user.email }}</p>
+            <span class="role-pill">{{ user.role|title }}</span>
+            <div class="summary-grid mt-4">
+                <div>
+                    <small>Assigned Tasks</small>
+                    <strong>{{ assigned_task_count }}</strong>
+                </div>
+                <div>
+                    <small>Projects</small>
+                    <strong>{{ project_count }}</strong>
+                </div>
+                <div>
+                    <small>Joined</small>
+                    <strong>{{ user.date_joined|date:"M d, Y" }}</strong>
+                </div>
+                <div>
+                    <small>Last Login</small>
+                    <strong>{% if user.last_login %}{{ user.last_login|date:"M d, Y H:i" }}{% else %}Never{% endif %}</strong>
+                </div>
+            </div>
+            {% if user.bio %}
+                <div class="profile-summary__bio mt-4">
+                    <h6>Bio</h6>
+                    <p class="mb-0">{{ user.bio }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

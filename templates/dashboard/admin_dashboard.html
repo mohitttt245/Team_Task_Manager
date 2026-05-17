@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard | {{ APP_NAME }}{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block eyebrow %}Portfolio Overview{% endblock %}
+{% block page_actions %}
+    <a href="{% url 'projects:list' %}" class="btn btn-dark">
+        <i class="bi bi-plus-lg me-2"></i>Manage Projects
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid mb-4">
+    <article class="stat-card stat-card--blue">
+        <span>Total Projects</span>
+        <strong>{{ total_projects }}</strong>
+        <small>All active collaboration spaces</small>
+    </article>
+    <article class="stat-card stat-card--green">
+        <span>Total Tasks</span>
+        <strong>{{ total_tasks }}</strong>
+        <small>Across all tracked projects</small>
+    </article>
+    <article class="stat-card stat-card--amber">
+        <span>Completed Tasks</span>
+        <strong>{{ completed_tasks }}</strong>
+        <small>Delivery momentum across the team</small>
+    </article>
+    <article class="stat-card stat-card--rose">
+        <span>Overdue Tasks</span>
+        <strong>{{ overdue_tasks }}</strong>
+        <small>Needs intervention or replanning</small>
+    </article>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="panel-card chart-card">
+                    <div class="panel-card__header">
+                        <div>
+                            <h3 class="panel-card__title">Task Status</h3>
+                            <p class="text-muted mb-0">Pipeline distribution across all tasks.</p>
+                        </div>
+                    </div>
+                    {{ status_breakdown|json_script:"status-breakdown-data" }}
+                    <canvas id="statusChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="panel-card chart-card">
+                    <div class="panel-card__header">
+                        <div>
+                            <h3 class="panel-card__title">Priority Mix</h3>
+                            <p class="text-muted mb-0">Urgency by task priority level.</p>
+                        </div>
+                    </div>
+                    {{ priority_breakdown|json_script:"priority-breakdown-data" }}
+                    <canvas id="priorityChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="panel-card">
+                    <div class="panel-card__header">
+                        <div>
+                            <h3 class="panel-card__title">Project Progress</h3>
+                            <p class="text-muted mb-0">Quick view of delivery completion across your projects.</p>
+                        </div>
+                    </div>
+                    <div class="progress-list">
+                        {% for project in project_progress %}
+                            <div class="progress-list__item">
+                                <div class="d-flex justify-content-between gap-3 align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ project.name }}</strong>
+                                        <small class="d-block text-muted">{{ project.completed_task_count }} of {{ project.total_task_count }} tasks completed</small>
+                                    </div>
+                                    <span class="badge rounded-pill text-bg-light">{{ project.progress_percentage }}%</span>
+                                </div>
+                                <div class="progress progress--thick">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ project.progress_percentage }}%" aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted mb-0">No project progress to show yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="panel-card mb-4">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Recent Activities</h3>
+                    <p class="text-muted mb-0">Latest project and task changes.</p>
+                </div>
+            </div>
+            <div class="timeline-list">
+                {% for activity in recent_activities %}
+                    <article class="timeline-list__item">
+                        <span class="timeline-list__dot"></span>
+                        <div>
+                            <p class="mb-1">{{ activity.message }}</p>
+                            <small class="text-muted">
+                                {% if activity.actor %}{{ activity.actor.display_name }}{% else %}System{% endif %}
+                                · {{ activity.created_at|timesince }} ago
+                            </small>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="text-muted mb-0">No recent activity logged yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-card__header">
+                <div>
+                    <h3 class="panel-card__title">Overdue Tasks</h3>
+                    <p class="text-muted mb-0">Tasks that need immediate attention.</p>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in overdue_task_list %}
+                            <tr class="table-danger">
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    <small class="d-block text-muted">{{ task.project.name }}</small>
+                                </td>
+                                <td>{{ task.due_date|date:"M d, Y" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-muted">No overdue tasks. Nice work.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
